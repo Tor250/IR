@@ -3,4 +3,4 @@ hw1/lsm_v1.py
 hw1/lsm_v2.py
 __pycache__/
 .pytest_cache/
-data
+data/
