@@ -1,8 +1,29 @@
-import time, random
-from hw4.hw4_index_v1 import HW4InvertedIndex
+import time
+import random
+import importlib
+import os
+
+
+def _load_index_class():
+    version = os.getenv("HW4_VERSION", "v3").strip().lower()
+    module_name = {
+        "v1": "hw4.hw4_index_v1",
+        "v2": "hw4.hw4_index_v2",
+        "v3": "hw4.hw4_index_v3",
+    }.get(version)
+    if module_name is None:
+        raise ValueError(f"Unknown HW4_VERSION: {version}")
+    module = importlib.import_module(module_name)
+    return module.HW4InvertedIndex
+
+
+HW4InvertedIndex = _load_index_class()
 
 def benchmark_inserts(N=10000):
-    idx = HW4InvertedIndex()
+    try:
+        idx = HW4InvertedIndex(clear_on_init=True)
+    except TypeError:
+        idx = HW4InvertedIndex()
     start = time.time()
     for i in range(N):
         doc = f"doc{i} " + " ".join(f"word{random.randint(0,1000)}" for _ in range(20))

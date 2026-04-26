@@ -1,16 +1,40 @@
 import shutil
 import random
+import importlib
+import os
 from pyroaring import BitMap
-from hw4.hw4_index_v1 import HW4InvertedIndex
+
+
+def _load_index_class():
+    version = os.getenv("HW4_VERSION", "v3").strip().lower()
+    module_name = {
+        "v1": "hw4.hw4_index_v1",
+        "v2": "hw4.hw4_index_v2",
+        "v3": "hw4.hw4_index_v3",
+    }.get(version)
+    if module_name is None:
+        raise ValueError(f"Unknown HW4_VERSION: {version}")
+    module = importlib.import_module(module_name)
+    return module.HW4InvertedIndex
+
+
+HW4InvertedIndex = _load_index_class()
 
 def cleanup_test_data():
     shutil.rmtree("hw4_test_data", ignore_errors=True)
+
+
+def make_index():
+    try:
+        return HW4InvertedIndex(clear_on_init=True)
+    except TypeError:
+        return HW4InvertedIndex()
 
 HW4InvertedIndex.query_boolean = HW4InvertedIndex.query_complex
 
 
 def test_basic_term_and_date():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("cat dog", "2023-01-01")
     idx.add_document("dog elephant", "2023-02-01")
     idx.add_document("cat elephant", "2023-03-01")
@@ -28,7 +52,7 @@ def test_basic_term_and_date():
 
 
 def test_date_ranges_and_overlap():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("a", "2023-01-01", "2023-01-31")
     idx.add_document("b", "2023-01-15", "2023-02-15")
     idx.add_document("c", "2023-02-01")
@@ -46,7 +70,7 @@ def test_date_ranges_and_overlap():
 
 
 def test_terms_and_date_combined():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("foo bar", "2023-01-01")
     idx.add_document("foo baz", "2023-02-01")
     idx.add_document("baz qux", "2023-03-01")
@@ -64,7 +88,7 @@ def test_terms_and_date_combined():
 
 
 def test_edge_cases():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("", "2023-01-01")
     idx.add_document("term", "2023-01-02", "2023-01-02")
     idx.add_document("term", "2023-01-03")
@@ -83,7 +107,7 @@ def test_edge_cases():
 
 
 def test_tokenization_and_stemming():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("Running runs runner", "2023-01-01")
     idx.add_document("Jogging slow", "2023-02-01")
 
@@ -103,7 +127,7 @@ def test_tokenization_and_stemming():
 
 
 def test_composite_terms():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("common word_25 unique_term", "2023-01-01")
     assert 0 in idx.query_and("word_25")
     assert 0 in idx.query_and("unique_term")
@@ -114,7 +138,7 @@ def test_composite_terms():
 
 
 def test_complex_boolean_with_dates():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("python tutorial", "2023-01-01")
     idx.add_document("java tutorial", "2023-02-01")
     idx.add_document("python advanced", "2023-03-01")
@@ -136,7 +160,7 @@ def test_complex_boolean_with_dates():
 
 
 def test_nested_boolean_expressions():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("alpha charlie", "2023-01-01")
     idx.add_document("bravo charlie", "2023-02-01")
     idx.add_document("delta", "2023-03-01")
@@ -158,10 +182,11 @@ def test_nested_boolean_expressions():
 
 def cleanup_lsm():
     shutil.rmtree("data/lsm_index", ignore_errors=True)
+    shutil.rmtree("data/lsm_index_v3", ignore_errors=True)
 
 def test_large_scale_with_dates():
     cleanup_lsm()
-    idx = HW4InvertedIndex()
+    idx = make_index()
     N = 5000
 
     for i in range(N):
@@ -193,7 +218,7 @@ def test_large_scale_with_dates():
 
 
 def test_persistence_across_operations():
-    idx = HW4InvertedIndex()
+    idx = make_index()
 
     for i in range(100):
         idx.add_document(f"doc{i} term_a term_b", f"2023-{(i%12)+1:02d}-01")
@@ -207,7 +232,7 @@ def test_persistence_across_operations():
     print("✓ test_persistence_across_operations passed")
 
 def test_date_boundary_conditions():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     idx.add_document("doc", "2023-01-15", "2023-01-15")
     
     res = idx.query_and_date(start="2023-01-15", end="2023-01-15", mode="valid")
@@ -217,7 +242,7 @@ def test_date_boundary_conditions():
     assert 0 in res
 
 def test_invalid_date_format():
-    idx = HW4InvertedIndex()
+    idx = make_index()
     try:
         idx.add_document("doc", "invalid-date")
         assert False, "Должна быть ошибка"
@@ -238,4 +263,4 @@ if __name__ == "__main__":
     test_nested_boolean_expressions()
     test_large_scale_with_dates()
     test_persistence_across_operations()
-    print("\n🎉 All tests passed!")
+    print("\nAll tests passed!")

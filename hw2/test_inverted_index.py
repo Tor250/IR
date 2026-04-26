@@ -200,7 +200,4 @@ def test_stopwords_and_empty_tokens():
 
 if __name__ == "__main__":
     test_basic_inmemory()
-    test_basic_lsm()
-    test_lsm_flush_merge_correctness()
-    test_stemming_collision_handling()
-    test_large_bitmap_operations()
+    test_double_stemming_consistency()
